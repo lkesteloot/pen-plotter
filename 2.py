@@ -6,7 +6,7 @@ import shape
 
 WIDTH = 8.5*DPI
 HEIGHT = 11*DPI
-MARGIN = 0*DPI
+MARGIN = 1*DPI
 MAX_RADIUS = 0.5*DPI
 
 def add_circle(circles, bounding_shape):
@@ -46,15 +46,12 @@ def add_circle(circles, bounding_shape):
     return False
 
 def main():
-    dx = -580
-    dy = -350
-    s = 0.6
     letter = shape.read_from_svg("E.svg")
-    letter = [((x1 + dx)*s, (y1 + dy)*s, (x2 + dx)*s, (y2 + dy)*s) for x1, y1, x2, y2 in letter]
+    letter = shape.center_in(letter, MARGIN, MARGIN, WIDTH - MARGIN, HEIGHT - MARGIN)
 
     circles = []
 
-    while len(circles) < 1000:
+    while len(circles) < 1000 and False:
         succeeded = add_circle(circles, letter)
         if not succeeded:
             break
@@ -63,7 +60,7 @@ def main():
     write_header(f, WIDTH, HEIGHT)
     draw_rect(f, 0, 0, WIDTH, HEIGHT)
 
-    if False:
+    if True:
         for x1, y1, x2, y2 in letter:
             draw_line(f, x1, y1, x2, y2)
 

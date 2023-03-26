@@ -211,6 +211,37 @@ def dist_to_shape(x, y, lines):
 
     return closest_dist
 
+# Returns (min_x, min_y, max_x, max_y)
+def get_bbox(lines):
+    bbox = [lines[0][0], lines[0][1], lines[0][0], lines[0][1]]
+
+    for x1, y1, x2, y2 in lines:
+        bbox[0] = min(bbox[0], x1, x2)
+        bbox[1] = min(bbox[1], y1, y2)
+        bbox[2] = max(bbox[2], x1, x2)
+        bbox[3] = max(bbox[3], y1, y2)
+
+    return tuple(bbox)
+
+def translate_by(lines, dx, dy):
+    return [(x1 + dx, y1 + dy, x2 + dx, y2 + dy) for x1, y1, x2, y2 in lines]
+
+def scale_by(lines, sx, sy):
+    return [(x1 * sx, y1 * sy, x2 * sx, y2 * sy) for x1, y1, x2, y2 in lines]
+
+def center_in(lines, x1, y1, x2, y2):
+    bbox = get_bbox(lines)
+
+    sx = (x2 - x1) / (bbox[2] - bbox[0])
+    sy = (y2 - y1) / (bbox[3] - bbox[1])
+    s = min(sx, sy)
+
+    lines = translate_by(lines, -(bbox[0] + bbox[2])/2, -(bbox[1] + bbox[3])/2)
+    lines = scale_by(lines, s, s)
+    lines = translate_by(lines, (x1 + x2)/2, (y1 + y2)/2)
+
+    return lines
+
 if __name__ == "__main__":
     lines = read_from_svg("E.svg")
     for line in lines:
