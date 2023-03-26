@@ -2,6 +2,10 @@
 # A shape is a list of (x1,y1,x2,y2) line segment tuples, ordered clockwise.
 
 import math
+
+# pip install freetype-py
+import freetype
+
 from svg import lerp
 
 def _read_path_string_from_svg(filename):
@@ -247,6 +251,9 @@ def translate_by(lines, dx, dy):
 def scale_by(lines, sx, sy):
     return [(x1 * sx, y1 * sy, x2 * sx, y2 * sy) for x1, y1, x2, y2 in lines]
 
+def reverse_direction(lines):
+    return list(reversed([(x2, y2, x1, y1) for x1, y1, x2, y2 in lines]))
+
 def center_in(lines, x1, y1, x2, y2):
     bbox = get_bbox(lines)
 
@@ -257,6 +264,49 @@ def center_in(lines, x1, y1, x2, y2):
     lines = translate_by(lines, -(bbox[0] + bbox[2])/2, -(bbox[1] + bbox[3])/2)
     lines = scale_by(lines, s, s)
     lines = translate_by(lines, (x1 + x2)/2, (y1 + y2)/2)
+
+    return lines
+
+def letter_from_font(letter, font_filename):
+    lines = []
+
+    # Current point.
+    x = 0
+    y = 0
+
+    def move_to(a, lines):
+        global x, y
+        x = a.x
+        y = a.y
+
+    def line_to(a, lines):
+        global x, y
+        lines.append( (x, y, a.x, a.y) )
+        x = a.x
+        y = a.y
+
+    def conic_to(a, b, lines):
+        global x, y
+        # lines.append("Q {},{} {},{}".format(a.x, a.y, b.x, b.y))
+        raise Exception("conic not supported")
+
+    def cubic_to(a, b, c, lines):
+        global x, y
+        _add_bezier(lines, x, y, a.x, a.y, b.x, b.y, c.x, c.y)
+        x = c.x
+        y = c.y
+
+    face = freetype.Face(font_filename)
+    face.set_char_size(48*64)
+    face.load_char(letter, freetype.FT_LOAD_DEFAULT | freetype.FT_LOAD_NO_BITMAP)
+    face.glyph.outline.decompose(lines, move_to=move_to, line_to=line_to,
+                                 conic_to=conic_to, cubic_to=cubic_to)
+
+    # Flip vertically.
+    lines = scale_by(lines, 1, -1)
+
+    # Reverse direction (make clockwise).
+    lines = reverse_direction(lines)
 
     return lines
 
