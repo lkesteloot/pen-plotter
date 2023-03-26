@@ -1,4 +1,5 @@
 
+# Inspired by P.2.2.3 of Generative Design
 import sys
 import random
 
@@ -63,17 +64,17 @@ def main():
     write_header(f)
     draw_rect(f, 0, 0, WIDTH, HEIGHT)
 
-    x1 = WIDTH*0.1
-    x2 = WIDTH*0.9
-    COUNT = 15
+    X1 = WIDTH*0.1
+    X2 = WIDTH*0.9
+    POINT_COUNT = 15
 
-    for chunk in range(5):
+    for chunk in range(10):
         v = []
         y = random_in_range(HEIGHT*0.1, HEIGHT*0.9)
-        for i in range(COUNT):
-            v.append( (lerp(x1, x2, i/COUNT), y) )
-        dy = 3 if random.random() > 0.5 else -3
-        line_count = int(random_in_range(20, 40))
+        for i in range(POINT_COUNT):
+            v.append( (lerp(X1, X2, i/POINT_COUNT), y) )
+        dy = random_in_range(-3, 3)
+        line_count = int(random_in_range(20, 60))
 
         for i in range(line_count):
             v = [(x + random_in_range(-STEP_SIZE, STEP_SIZE),
