@@ -88,6 +88,12 @@ def _parse_path_to_shape(path):
         elif token == "M":
             x, i = _parse_token(path, i)
             y, i = _parse_token(path, i)
+        elif token == "L":
+            x2, i = _parse_token(path, i)
+            y2, i = _parse_token(path, i)
+            lines.append( (x, y, x2, y2) )
+            x = x2
+            y = y2
         elif token == "l":
             dx, i = _parse_token(path, i)
             dy, i = _parse_token(path, i)
@@ -114,6 +120,18 @@ def _parse_path_to_shape(path):
             y2 = y + dy
             lines.append( (x, y, x, y2) )
             y = y2
+        elif token == "C":
+            x2, i = _parse_token(path, i)
+            y2, i = _parse_token(path, i)
+            x3, i = _parse_token(path, i)
+            y3, i = _parse_token(path, i)
+            x4, i = _parse_token(path, i)
+            y4, i = _parse_token(path, i)
+            _add_bezier(lines, x, y, x2, y2, x3, y3, x4, y4)
+            xh = x3
+            yh = y3
+            x = x4
+            y = y4
         elif token == "c":
             dx2, i = _parse_token(path, i)
             dy2, i = _parse_token(path, i)

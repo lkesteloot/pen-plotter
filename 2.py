@@ -46,12 +46,12 @@ def add_circle(circles, bounding_shape):
     return False
 
 def main():
-    letter = shape.read_from_svg("E.svg")
+    letter = shape.read_from_svg("H.svg")
     letter = shape.center_in(letter, MARGIN, MARGIN, WIDTH - MARGIN, HEIGHT - MARGIN)
 
     circles = []
 
-    while len(circles) < 1000 and False:
+    while len(circles) < 1000 and True:
         succeeded = add_circle(circles, letter)
         if not succeeded:
             break
@@ -60,7 +60,7 @@ def main():
     write_header(f, WIDTH, HEIGHT)
     draw_rect(f, 0, 0, WIDTH, HEIGHT)
 
-    if True:
+    if False:
         for x1, y1, x2, y2 in letter:
             draw_line(f, x1, y1, x2, y2)
 
