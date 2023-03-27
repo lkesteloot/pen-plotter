@@ -365,22 +365,11 @@ function addCircle(circles: Circle[], drawArea: Rect, shape: Shape): boolean {
     return false;
 }
 
-async function main(): Promise<void> {
-    const pageSize = new Vector(8.5*DPI, 11*DPI).swap();
-    const page = new Rect(Vector.ZERO, pageSize);
-    const margin = 1*DPI;
-
-    const circles: Circle[] = [];
-
-    const drawArea = page.insetBy(margin);
-
-    const fontPathname = "/Library/Fonts/SF-Pro-Text-Regular.otf";
-    // const fontPathname = "/Library/Fonts/AGaramondPro-Regular.otf";
-
+async function makeTextShape(fontPathname: string, text: string): Promise<Shape> {
+    const shape = new Shape();
     const rawFontBinary = await Deno.readFile(fontPathname);
     const font = opentype.parse(rawFontBinary.buffer, {});
-    const path = font.getPath("K");
-    const shape = new Shape();
+    const path = font.getPath(text);
     let p = Vector.ZERO;
     let firstPoint: Vector | undefined = undefined;
     for (const command of path.commands) {
@@ -421,6 +410,47 @@ async function main(): Promise<void> {
                 throw new Error("unknown path command: " + command.type);
         }
     }
+
+    return shape;
+}
+
+function stackVertically(shapes: Shape[], gap: number): Shape {
+    const bboxes = shapes.map(shape => shape.getBbox());
+
+    const finalShape = new Shape();
+    let dy = 0;
+
+    for (let i = 0; i < shapes.length; i++) {
+        const shape = shapes[i];
+        const bbox = bboxes[i];
+
+        const p = bboxes[0].p.minus(bbox.p).plus(new Vector((bboxes[0].size.x - bbox.size.x)/2, dy));
+        finalShape.lines.push(... shape.translateBy(p).lines);
+
+        dy += bbox.size.y + gap;
+    }
+
+    return finalShape;
+}
+
+async function main(): Promise<void> {
+    const pageSize = new Vector(8.5*DPI, 11*DPI);
+    const page = new Rect(Vector.ZERO, pageSize);
+    const margin = 1*DPI;
+
+    const circles: Circle[] = [];
+
+    const drawArea = page.insetBy(margin);
+
+    const sfFontPathname = "/Library/Fonts/SF-Pro-Text-Regular.otf";
+    const garamondFontPathname = "/Library/Fonts/AGaramondPro-Regular.otf";
+
+    const shape1 = await makeTextShape(garamondFontPathname, "LK");
+    const shape2 = await makeTextShape(sfFontPathname, "♥");
+    const shape3 = await makeTextShape(garamondFontPathname, "JK");
+
+    const shape = stackVertically([shape1, shape2, shape3], 0.1*DPI);
+
     const bigShape = shape.centerIn(drawArea);
 
     while (circles.length < 2000 && true) {
@@ -436,7 +466,7 @@ async function main(): Promise<void> {
         svg.drawCircle(circle.c, circle.r);
     }
     for (const line of bigShape.lines) {
-        svg.drawLine(line.p1, line.p2);
+        // svg.drawLine(line.p1, line.p2);
     }
     await svg.save("out.svg");
 }
