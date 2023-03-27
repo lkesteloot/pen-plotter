@@ -59,19 +59,24 @@ export class Vector {
     }
 
     public perpendicular(): Vector {
+        // 90 degrees counter-clockwise.
         return new Vector(this.y, -this.x);
     }
 
     public normalized(): Vector {
         const length = this.length();
         if (length === 0) {
-            throw new Error("can't normalize zero-length vector");
+            return Vector.ZERO;
         }
         return this.dividedBy(length);
     }
 
     public dot(p: Vector): number {
         return this.x*p.x + this.y*p.y;
+    }
+
+    public swap(): Vector {
+        return new Vector(this.y, this.x);
     }
 }
 
@@ -170,7 +175,7 @@ class Line {
     }
 }
 
-// An arbitrary closed shape, ordered clockwise to include and counter-clockwise to exclude.
+// An arbitrary closed shape, ordered counter-clockwise to include and clockwise to exclude.
 class Shape {
     public readonly lines: Line[];
 
@@ -240,6 +245,23 @@ class Shape {
             .translateBy(rect.center());
     }
 
+    public isInside(p: Vector): boolean {
+        let inside = false;
+
+        for (const line of this.lines) {
+            if ((line.p1.y < p.y && p.y <= line.p2.y) || (line.p2.y < p.y && p.y <= line.p1.y)) {
+                const p12 = line.p2.minus(line.p1);
+                const p1r = p.minus(line.p1);
+                const t = p12.x*p1r.y/p12.y - p1r.x;
+                if (t > 0) {
+                    inside = !inside;
+                }
+            }
+        }
+
+        return inside;
+    }
+
     public distanceToPoint(p: Vector): number {
         let closestDistance: number | undefined = undefined;
 
@@ -260,25 +282,22 @@ class Shape {
             // Find distance along line.
             let t: number;
             if (Math.abs(dl.x) > Math.abs(dl.y)) {
-                t = (p.x - line.p1.x)/dl.x;
+                t = (pp.x - line.p1.x)/dl.x;
             } else {
-                t = (p.y - line.p1.y)/dl.y;
+                t = (pp.y - line.p1.y)/dl.y;
             }
 
-            // Clamp to line.
+            // Clamp to line segment.
             t = Math.max(Math.min(t, 1), 0);
 
             // Put back on line.
             pp = line.lerp(t);
 
             // Find distance.
-            let dist = p.minus(pp).length();
+            const dist = p.minus(pp).length();
 
-            // Copy sign from dot product.
-            dist = dot < 0 ? -dist : dist;
-
-            if (closestDistance === undefined || Math.abs(dist) < Math.abs(closestDistance)) {
-                closestDistance = dist
+            if (closestDistance === undefined || dist < closestDistance) {
+                closestDistance = dist;
             }
         }
 
@@ -286,7 +305,7 @@ class Shape {
             throw new Error("can't find distance, no lines in shape");
         }
 
-        return closestDistance
+        return closestDistance;
     }
 }
 
@@ -313,9 +332,11 @@ function addCircle(circles: Circle[], drawArea: Rect, shape: Shape): boolean {
         // minDist = Math.min(minDist, p1.x, p1.y, p2.x, p2.y);
 
         // Clip to shape.
-        const dist = shape.distanceToPoint(p);
-        if (dist > 0) {
-            minDist = Math.min(minDist, dist);
+        if (shape.isInside(p)) {
+            const dist = shape.distanceToPoint(p);
+            if (dist > 0) {
+                minDist = Math.min(minDist, dist);
+            }
         } else {
             // Outside of shape.
             continue;
@@ -345,7 +366,7 @@ function addCircle(circles: Circle[], drawArea: Rect, shape: Shape): boolean {
 }
 
 async function main(): Promise<void> {
-    const pageSize = new Vector(8.5*DPI, 11*DPI);
+    const pageSize = new Vector(8.5*DPI, 11*DPI).swap();
     const page = new Rect(Vector.ZERO, pageSize);
     const margin = 1*DPI;
 
@@ -353,55 +374,56 @@ async function main(): Promise<void> {
 
     const drawArea = page.insetBy(margin);
 
-    const rawFontBinary = await Deno.readFile("/Library/Fonts/AGaramondPro-Regular.otf");
+    const fontPathname = "/Library/Fonts/SF-Pro-Text-Regular.otf";
+    // const fontPathname = "/Library/Fonts/AGaramondPro-Regular.otf";
+
+    const rawFontBinary = await Deno.readFile(fontPathname);
     const font = opentype.parse(rawFontBinary.buffer, {});
-    const paths = font.getPaths("L");
+    const path = font.getPath("K");
     const shape = new Shape();
     let p = Vector.ZERO;
-    let firstPoint = null;
-    for (const path of paths) {
-        for (const command of path.commands) {
-            //console.log(command);
-            switch (command.type) {
-                case "M":
-                    p = new Vector(command.x, command.y);
-                    if (firstPoint === null) {
-                        firstPoint = p;
-                    }
-                    break;
-
-                case "L": {
-                    const p2 = new Vector(command.x, command.y);
-                    shape.lines.push(new Line(p, p2));
-                    p = p2;
-                    break;
+    let firstPoint: Vector | undefined = undefined;
+    for (const command of path.commands) {
+        //console.log(command);
+        switch (command.type) {
+            case "M":
+                p = new Vector(command.x, command.y);
+                if (firstPoint === undefined) {
+                    firstPoint = p;
                 }
+                break;
 
-                case "C": {
-                    const p2 = new Vector(command.x1, command.y1);
-                    const p3 = new Vector(command.x2, command.y2);
-                    const p4 = new Vector(command.x, command.y);
-                    shape.addBezier(p, p2, p3, p4);
-                    p = p4;
-                    break;
-                }
-
-                case "Z":
-                    if (firstPoint === null) {
-                        throw new Error("cannot close path, we have no first point");
-                    }
-                    shape.lines.push(new Line(p, firstPoint));
-                    p = firstPoint;
-                    break;
-
-                default:
-                    throw new Error("unknown path command: " + command.type);
+            case "L": {
+                const p2 = new Vector(command.x, command.y);
+                shape.lines.push(new Line(p, p2));
+                p = p2;
+                break;
             }
+
+            case "C": {
+                const p2 = new Vector(command.x1, command.y1);
+                const p3 = new Vector(command.x2, command.y2);
+                const p4 = new Vector(command.x, command.y);
+                shape.addBezier(p, p2, p3, p4);
+                p = p4;
+                break;
+            }
+
+            case "Z":
+                if (firstPoint === undefined) {
+                    throw new Error("cannot close path, we have no first point");
+                }
+                shape.lines.push(new Line(p, firstPoint));
+                firstPoint = undefined;
+                break;
+
+            default:
+                throw new Error("unknown path command: " + command.type);
         }
     }
     const bigShape = shape.centerIn(drawArea);
 
-    while (circles.length < 1000 && true) {
+    while (circles.length < 2000 && true) {
         const succeeded = addCircle(circles, drawArea, bigShape);
         if (!succeeded) {
             console.log("Failed to add circle after " + circles.length + " circles");
@@ -414,7 +436,7 @@ async function main(): Promise<void> {
         svg.drawCircle(circle.c, circle.r);
     }
     for (const line of bigShape.lines) {
-        // svg.drawLine(line.p1, line.p2);
+        svg.drawLine(line.p1, line.p2);
     }
     await svg.save("out.svg");
 }
