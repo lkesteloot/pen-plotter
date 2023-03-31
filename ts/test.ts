@@ -1,7 +1,7 @@
 
 import opentype from  "https://unpkg.com/opentype.js@1.3.4/dist/opentype.module.js";
 
-const DPI = 72;
+const DPI = 96;
 const CURVE_TIGHTNESS = 0; // 0 = Catmull-Rom splines, 1 = straight lines
 
 export class Vector {
@@ -124,7 +124,7 @@ export class Svg {
 
     public drawRect(p1: Vector, p2: Vector) {
         const size = p2.minus(p1);
-        this.parts.push(`<rect x="${p1.x}" y="${p1.y}" width="${size.x}" y2="${size.y}" stroke="blue" stroke-width="1" fill="none"/>`);
+        this.parts.push(`<rect x="${p1.x}" y="${p1.y}" width="${size.x}" height="${size.y}" stroke="blue" stroke-width="1" fill="none"/>`);
     }
 
     public drawCircle(c: Vector, r: number) {
@@ -433,8 +433,27 @@ function stackVertically(shapes: Shape[], gap: number): Shape {
     return finalShape;
 }
 
+function stackHorizontally(shapes: Shape[], gap: number): Shape {
+    const bboxes = shapes.map(shape => shape.getBbox());
+
+    const finalShape = new Shape();
+    let dx = 0;
+
+    for (let i = 0; i < shapes.length; i++) {
+        const shape = shapes[i];
+        const bbox = bboxes[i];
+
+        const p = bboxes[0].p.minus(bbox.p).plus(new Vector(dx, (bboxes[0].size.y - bbox.size.y)/2));
+        finalShape.lines.push(... shape.translateBy(p).lines);
+
+        dx += bbox.size.x + gap;
+    }
+
+    return finalShape;
+}
+
 async function main(): Promise<void> {
-    const pageSize = new Vector(8.5*DPI, 11*DPI);
+    const pageSize = new Vector(8.5*DPI, 11*DPI).swap();
     const page = new Rect(Vector.ZERO, pageSize);
     const margin = 1*DPI;
 
@@ -445,13 +464,17 @@ async function main(): Promise<void> {
     const sfFontPathname = "/Library/Fonts/SF-Pro-Text-Regular.otf";
     const garamondFontPathname = "/Library/Fonts/AGaramondPro-Regular.otf";
 
-    const shape1 = await makeTextShape(garamondFontPathname, "LK");
+    const shape1 = await makeTextShape(garamondFontPathname, "H");
     const shape2 = await makeTextShape(sfFontPathname, "♥");
-    const shape3 = await makeTextShape(garamondFontPathname, "JK");
+    const shape3 = await makeTextShape(garamondFontPathname, "H");
 
-    const shape = stackVertically([shape1, shape2, shape3], 0.1*DPI);
-
+    // const shape = stackVertically([shape1, shape2, shape3], 0.1*DPI);
+    const shape = stackHorizontally([shape1, shape2, shape3], 0.0*DPI);
     const bigShape = shape.centerIn(drawArea);
+
+    // const bigShape = shape2.centerIn(drawArea);
+    // const bigShape2 = shape.centerIn(drawArea);
+    // bigShape.lines.push(... shape.lines);
 
     while (circles.length < 2000 && true) {
         const succeeded = addCircle(circles, drawArea, bigShape);
@@ -462,6 +485,8 @@ async function main(): Promise<void> {
     }
 
     const svg = new Svg(pageSize);
+    // svg.drawRect(Vector.ZERO, pageSize);
+    // svg.drawRect(drawArea.p, drawArea.p.plus(drawArea.size));
     for (const circle of circles) {
         svg.drawCircle(circle.c, circle.r);
     }
