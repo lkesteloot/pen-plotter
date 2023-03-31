@@ -367,11 +367,17 @@ class Shape {
     public isInside(p: Vector): boolean {
         let inside = false;
 
+        // In this algorithm we shoot a ray to the right (positive X) and
+        // see how many line segments we intersect with. If the number is
+        // odd, we're inside.
         for (const line of this.lines) {
+            // See if our point overlaps vertically with this line segment.
             if ((line.p1.y < p.y && p.y <= line.p2.y) || (line.p2.y < p.y && p.y <= line.p1.y)) {
+                // Find the intersection between our ray and this line.
                 const p12 = line.p2.minus(line.p1);
                 const p1r = p.minus(line.p1);
                 const t = p12.x*p1r.y/p12.y - p1r.x;
+                // See if the intersection is to the right.
                 if (t > 0) {
                     inside = !inside;
                 }
@@ -387,6 +393,7 @@ class Shape {
     public distanceToPoint(p: Vector): number {
         let closestDistance: number | undefined = undefined;
 
+        // Try every line segment, to see which is closest.
         for (const line of this.lines) {
             // Normal vector.
             const dl = line.p2.minus(line.p1); 
@@ -395,7 +402,8 @@ class Shape {
                 continue;
             }
 
-            // Dot with line endpoint.
+            // Dot with line endpoint. This finds the distance between
+            // the point and the line (not line segment).
             const dot = n.dot(p.minus(line.p1));
 
             // Project back to line.
@@ -468,6 +476,7 @@ function addCircle(circles: Circle[], drawArea: Rect, shape: Shape): boolean {
             continue;
         }
 
+        // Avoid being inside circle, and find distance to closest circle.
         let insideCircle = false;
         for (const c of circles) {
             const dist2 = p.minus(c.c).lengthSquared();
@@ -499,12 +508,15 @@ async function makeTextShape(fontPathname: string, text: string): Promise<Shape>
     const rawFontBinary = await Deno.readFile(fontPathname);
     const font = opentype.parse(rawFontBinary.buffer, {});
     const path = font.getPath(text);
+
+    // Current point.
     let p = Vector.ZERO;
+    // First point of path.
     let firstPoint: Vector | undefined = undefined;
     for (const command of path.commands) {
-        //console.log(command);
         switch (command.type) {
             case "M":
+                // Move point.
                 p = new Vector(command.x, command.y);
                 if (firstPoint === undefined) {
                     firstPoint = p;
@@ -512,6 +524,7 @@ async function makeTextShape(fontPathname: string, text: string): Promise<Shape>
                 break;
 
             case "L": {
+                // Line to new point.
                 const p2 = new Vector(command.x, command.y);
                 shape.lines.push(new Line(p, p2));
                 p = p2;
@@ -519,6 +532,7 @@ async function makeTextShape(fontPathname: string, text: string): Promise<Shape>
             }
 
             case "C": {
+                // Bezier curve to new point.
                 const p2 = new Vector(command.x1, command.y1);
                 const p3 = new Vector(command.x2, command.y2);
                 const p4 = new Vector(command.x, command.y);
@@ -528,6 +542,7 @@ async function makeTextShape(fontPathname: string, text: string): Promise<Shape>
             }
 
             case "Z":
+                // Close path and start a new path.
                 if (firstPoint === undefined) {
                     throw new Error("cannot close path, we have no first point");
                 }
