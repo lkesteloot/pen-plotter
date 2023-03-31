@@ -4,6 +4,9 @@ import opentype from  "https://unpkg.com/opentype.js@1.3.4/dist/opentype.module.
 const DPI = 96;
 const CURVE_TIGHTNESS = 0; // 0 = Catmull-Rom splines, 1 = straight lines
 
+/**
+ * 2D vector.
+ */
 export class Vector {
     public static ZERO = new Vector(0, 0);
     public readonly x: number;
@@ -14,18 +17,30 @@ export class Vector {
         this.y = y;
     }
 
+    /**
+     * Generate a random vector with each component between 0 (inclusive) and 1 (exclusive).
+     */
     public static random(): Vector {
         return new Vector(Math.random(), Math.random());
     }
 
+    /**
+     * Return the sum of this vector and the given vector.
+     */
     public plus(p: Vector): Vector {
         return new Vector(this.x + p.x, this.y + p.y);
     }
 
+    /**
+     * Return the difference between this vector and the given vector.
+     */
     public minus(p: Vector): Vector {
         return new Vector(this.x - p.x, this.y - p.y);
     }
 
+    /**
+     * Return the product of this vector and the given vector (piece-wise) or the scalar.
+     */
     public times(s: number | Vector): Vector {
         if (s instanceof Vector) {
             return new Vector(this.x*s.x, this.y*s.y);
@@ -34,6 +49,9 @@ export class Vector {
         }
     }
 
+    /**
+     * Return the result of dividing this vector by the given vector (piece-wise) or the scalar.
+     */
     public dividedBy(s: number | Vector): Vector {
         if (s instanceof Vector) {
             return new Vector(this.x/s.x, this.y/s.y);
@@ -42,27 +60,46 @@ export class Vector {
         }
     }
 
+    /**
+     * Return this vector with both components negated.
+     */
     public negate(): Vector {
         return new Vector(-this.x, -this.y);
     }
 
+    /**
+     * Return the square of the length of this vector.
+     */
     public lengthSquared(): number {
         return this.dot(this);
     }
 
+    /**
+     * Return the length of this vector.
+     */
     public length(): number {
         return Math.sqrt(this.lengthSquared());
     }
 
+    /**
+     * Return a new vector, linearly interporated between this vector (t = 0) and
+     * the given vector (t = 1).
+     */
     public lerp(p: Vector, t: number): Vector {
         return this.plus(p.minus(this).times(t));
     }
 
+    /**
+     * Return this vector rotated 90 degrees counter-clockwise.
+     */
     public perpendicular(): Vector {
-        // 90 degrees counter-clockwise.
         return new Vector(this.y, -this.x);
     }
 
+    /**
+     * Return this vector normalized to length 1. If the vector is of length
+     * zero, a zero vector is returned.
+     */
     public normalized(): Vector {
         const length = this.length();
         if (length === 0) {
@@ -71,15 +108,24 @@ export class Vector {
         return this.dividedBy(length);
     }
 
+    /**
+     * Return the dot product between this vector and the given vector.
+     */
     public dot(p: Vector): number {
         return this.x*p.x + this.y*p.y;
     }
 
+    /**
+     * Return this vector with its components swapped.
+     */
     public swap(): Vector {
         return new Vector(this.y, this.x);
     }
 }
 
+/**
+ * A generic rectangle class, represented as the upper-left point and the size.
+ */
 export class Rect {
     public readonly p: Vector;
     public readonly size: Vector;
@@ -89,27 +135,46 @@ export class Rect {
         this.size = size;
     }
 
+    /**
+     * Construct are rectangle from its upper-left and lower-right points.
+     */
     public static fromEnds(p1: Vector, p2: Vector): Rect {
         return new Rect(p1, p2.minus(p1));
     }
 
+    /**
+     * Shrink a rectangle by a constant distance on all four sides.
+     */
     public insetBy(s: number): Rect {
         return new Rect(this.p.plus(new Vector(s, s)), this.size.minus(new Vector(s*2, s*2)));
     }
 
+    /**
+     * Generate a random point within a rectangle, inclusive of the left and top sides and
+     * exclusive of the right and bottom sides.
+     */
     public randomPoint(): Vector {
         return Vector.random().times(this.size).plus(this.p);
     }
 
+    /**
+     * A vector representing the center of the rectangle.
+     */
     public center(): Vector {
         return this.p.plus(this.size.times(0.5));
     }
 }
 
+/**
+ * A class to generate SVG files. All coordinates are in points.
+ */
 export class Svg {
     private readonly size: Vector;
     private readonly parts: string[] = [];
 
+    /**
+     * Construct an SVG page with the given size.
+     */
     constructor(size: Vector) {
         this.size = size;
 
@@ -118,19 +183,32 @@ export class Svg {
         this.parts.push(`<svg width="${this.size.x}" height="${this.size.y}" viewBox="0 0 ${this.size.x} ${this.size.y}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`);
     }
 
+    /**
+     * Draw a line from p1 to p2.
+     */
     public drawLine(p1: Vector, p2: Vector) {
         this.parts.push(`<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="blue" stroke-width="1"/>`);
     }
 
+    /**
+     * Draw a rectangle outline from p1 to p2.
+     */
     public drawRect(p1: Vector, p2: Vector) {
         const size = p2.minus(p1);
         this.parts.push(`<rect x="${p1.x}" y="${p1.y}" width="${size.x}" height="${size.y}" stroke="blue" stroke-width="1" fill="none"/>`);
     }
 
+    /**
+     * Draw a circle outline centered at "c" with radius "r".
+     */
     public drawCircle(c: Vector, r: number) {
         this.parts.push(`<circle cx="${c.x}" cy="${c.y}" r="${r}" stroke="black" stroke-width="1" fill="none"/>`);
     }
 
+    /**
+     * Draw a Catmull-Rom spline. Does not draw the first and last point, so if you want those, duplicate
+     * them.
+     */
     public drawSpline(v: Vector[]) {
         const s = 1 - CURVE_TIGHTNESS;
 
@@ -143,16 +221,26 @@ export class Svg {
         }
     }
 
+    /**
+     * Make a single string of the entire SVG file.
+     */
     private makeSvgString(): string {
         return this.parts.join("\n") + "\n";
     }
 
+    /**
+     * Closes the SVG file and writes it to the given pathname. Do not call multiple times or
+     * the file will be closed too many times.
+     */
     public async save(pathname: string) {
         this.parts.push(`</svg>`);
         await Deno.writeTextFile(pathname, this.makeSvgString());
     }
 }
 
+/**
+ * Represents a line with two endpoints.
+ */
 class Line {
     public readonly p1: Vector;
     public readonly p2: Vector;
@@ -162,20 +250,31 @@ class Line {
         this.p2 = p2;
     }
 
+    /**
+     * Move both endpoints by the specified vector.
+     */
     public translateBy(p: Vector): Line {
         return new Line(this.p1.plus(p), this.p2.plus(p));
     }
 
+    /**
+     * Scale both endpoints by the specified vector (piece-wise) or scalar.
+     */
     public scaleBy(s: number | Vector): Line {
         return new Line(this.p1.times(s), this.p2.times(s));
     }
 
+    /**
+     * Return the point "t" of the way from p1 (t = 0) to p2 (t = 1).
+     */
     public lerp(t: number): Vector {
         return this.p1.plus(this.p2.minus(this.p1).times(t));
     }
 }
 
-// An arbitrary closed shape, ordered counter-clockwise to include and clockwise to exclude.
+/**
+ * An arbitrary closed shape, ordered counter-clockwise to include and clockwise to exclude.
+ */
 class Shape {
     public readonly lines: Line[];
 
@@ -183,6 +282,9 @@ class Shape {
         this.lines = lines ?? [];
     }
 
+    /**
+     * Add a Bezier curve to the shape. The curve is broken down into line segments.
+     */
     public addBezier(p1: Vector, p2: Vector, p3: Vector, p4: Vector) {
         const COUNT = 10;
         const points: Vector[] = [];
@@ -207,6 +309,9 @@ class Shape {
         }
     }
 
+    /**
+     * Computes the bounding box of the shape.
+     */
     public getBbox(): Rect {
         let x1 = this.lines[0].p1.x;
         let y1 = this.lines[0].p1.y;
@@ -226,14 +331,24 @@ class Shape {
         return Rect.fromEnds(p1, p2);
     }
 
+    /**
+     * Move the shape by the specified vector.
+     */
     public translateBy(p: Vector): Shape {
         return new Shape(this.lines.map(line => line.translateBy(p)));
     }
 
+    /**
+     * Scale the shape by the specified vector (piece-wise) or scalar.
+     */
     public scaleBy(s: number | Vector): Shape {
         return new Shape(this.lines.map(line => line.scaleBy(s)));
     }
 
+    /**
+     * Center this shape in the specified rectangle. The new location is the
+     * original shape as large as it can by while fully fitting in the rectangle.
+     */
     public centerIn(rect: Rect): Shape {
         const bbox = this.getBbox();
         const scaleBoth = rect.size.dividedBy(bbox.size);
@@ -245,6 +360,10 @@ class Shape {
             .translateBy(rect.center());
     }
 
+    /**
+     * Whether the specified point is inside the shape. If the shape overlaps itself, the
+     * point is considered inside if it's inside an odd number of lines.
+     */
     public isInside(p: Vector): boolean {
         let inside = false;
 
@@ -262,6 +381,9 @@ class Shape {
         return inside;
     }
 
+    /**
+     * Computes the closest distance from the given point to the shape.
+     */
     public distanceToPoint(p: Vector): number {
         let closestDistance: number | undefined = undefined;
 
@@ -309,6 +431,9 @@ class Shape {
     }
 }
 
+/**
+ * A circle, specified by its center and radius.
+ */
 class Circle {
     public readonly c: Vector;
     public readonly r: number;
@@ -319,17 +444,18 @@ class Circle {
     }
 }
 
+/**
+ * Add a random circle to the list of circles. The new circle must have its center
+ * in the draw area, be inside the shape, not be inside an existing circle, and
+ * be as large as possible without touching the edge of the draw area, other circle,
+ * or shape, or exceed the maximum radius.
+ */
 function addCircle(circles: Circle[], drawArea: Rect, shape: Shape): boolean {
     const MAX_RADIUS = 0.5*DPI;
 
     for (let attempt = 0; attempt < 5000; attempt++) {
         const p = drawArea.randomPoint();
         let minDist = MAX_RADIUS;
-
-        // Clip to draw area.
-        // const p1 = p.minus(drawArea.p);
-        // const p2 = drawArea.p.plus(drawArea.size).minus(p);
-        // minDist = Math.min(minDist, p1.x, p1.y, p2.x, p2.y);
 
         // Clip to shape.
         if (shape.isInside(p)) {
@@ -365,6 +491,9 @@ function addCircle(circles: Circle[], drawArea: Rect, shape: Shape): boolean {
     return false;
 }
 
+/**
+ * Return a shape corresponding to the given text in the given font.
+ */
 async function makeTextShape(fontPathname: string, text: string): Promise<Shape> {
     const shape = new Shape();
     const rawFontBinary = await Deno.readFile(fontPathname);
@@ -414,6 +543,10 @@ async function makeTextShape(fontPathname: string, text: string): Promise<Shape>
     return shape;
 }
 
+/**
+ * Stack the given shapes vertically (top to bottom), centered, with the given gap between them.
+ * The location is unspecified; move the shape if you need it elsewhere.
+ */
 function stackVertically(shapes: Shape[], gap: number): Shape {
     const bboxes = shapes.map(shape => shape.getBbox());
 
@@ -433,6 +566,10 @@ function stackVertically(shapes: Shape[], gap: number): Shape {
     return finalShape;
 }
 
+/**
+ * Stack the given shapes horizontally (left to right), centered vertically, with the given gap between them.
+ * The location is unspecified; move the shape if you need it elsewhere.
+ */
 function stackHorizontally(shapes: Shape[], gap: number): Shape {
     const bboxes = shapes.map(shape => shape.getBbox());
 
