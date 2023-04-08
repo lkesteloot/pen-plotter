@@ -20,6 +20,20 @@ export class Vector {
     }
 
     /**
+     * Create a new vector from a two-element array.
+     */
+    public static fromArray(p: [number, number]): Vector {
+        return new Vector(p[0], p[1]);
+    }
+
+    /**
+     * This vector as a two-element array.
+     */
+    public toArray(): [number, number] {
+        return [this.x, this.y];
+    }
+
+    /**
      * Return the sum of this vector and the given vector.
      */
     public plus(p: Vector): Vector {
@@ -115,5 +129,12 @@ export class Vector {
      */
     public swap(): Vector {
         return new Vector(this.y, this.x);
+    }
+
+    /**
+     * Determinant of the matrix with this on top and p on the bottom.
+     */
+    public det(p: Vector): number {
+        return this.x*p.y - p.x*this.y;
     }
 }

@@ -20,6 +20,13 @@ export class Rect {
     }
 
     /**
+     * The rectangle as [xmin, ymin, xmax, ymax].
+     */
+    public asArray(): [number, number, number, number] {
+        return [this.p.x, this.p.y, this.p.x + this.size.x, this.p.y + this.size.y];
+    }
+
+    /**
      * Shrink a rectangle by a constant distance on all four sides.
      */
     public insetBy(s: number): Rect {

@@ -1,3 +1,5 @@
+import { Circle } from "./Circle.ts";
+import { Line } from "./Line.ts";
 import { Vector } from "./Vector.ts";
 
 const CURVE_TIGHTNESS = 0; // 0 = Catmull-Rom splines, 1 = straight lines
@@ -24,7 +26,16 @@ export class Svg {
     /**
      * Draw a line from p1 to p2.
      */
-    public drawLine(p1: Vector, p2: Vector) {
+    public drawLine(p1: Vector | Line, p2?: Vector) {
+        if (p1 instanceof Line) {
+            if (p2 !== undefined) {
+                throw new Error("When line, must specify only line");
+            }
+
+            p2 = p1.p2;
+            p1 = p1.p1;
+        }
+
         this.parts.push(`<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="black" stroke-width="1"/>`);
     }
 
@@ -39,7 +50,14 @@ export class Svg {
     /**
      * Draw a circle outline centered at "c" with radius "r".
      */
-    public drawCircle(c: Vector, r: number) {
+    public drawCircle(c: Vector | Circle, r?: number) {
+        if (c instanceof Circle) {
+            if (r !== undefined) {
+                throw new Error("when circle, can't specify radius");
+            }
+            r = c.r;
+            c = c.c;
+        }
         this.parts.push(`<circle cx="${c.x}" cy="${c.y}" r="${r}" stroke="black" stroke-width="1" fill="none"/>`);
     }
 
