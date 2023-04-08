@@ -1,8 +1,8 @@
 
 import jpeg from "npm:jpeg-js";
-import triangulate from "npm:delaunay-triangulate";
 // @deno-types="npm:@types/d3-delaunay"
 import {Delaunay} from "npm:d3-delaunay";
+import Color from "npm:color";
 import { DPI, Svg } from "./Svg.ts";
 import { Vector } from "./Vector.ts";
 import { Rect } from "./Rect.ts";
@@ -37,6 +37,8 @@ async function main() {
     const drawArea = page.insetBy(margin);
 
     const svg = new Svg(pageSize);
+    // svg.drawRect(Vector.ZERO, pageSize);
+    // svg.drawRect(drawArea.p, drawArea.p.plus(drawArea.size));
 
     if (true) {
         const jpegData = await Deno.readFile("bean.jpg");
@@ -108,16 +110,16 @@ async function main() {
         points = relaxPoints(points, drawArea, 3);
 
         console.log("Number of points:", points.length);
-        const triangles = triangulate(points.map(p => [p.x, p.y]));
-        console.log("Number of triangles:", triangles.length);
+        const delaunay = Delaunay.from(points.map(p => p.toArray()));
+        const triangles = delaunay.triangles;
+        console.log("Number of triangles:", triangles.length / 3);
 
         // Generate lines, removing duplicates. Key is "A,B" where A or B is the point index and A < B.
         const lineMap = new Map<string,Line>();
-        for (const t of triangles) {
-            for (let i = 0; i < t.length; i++) {
-                const j = (i + 1) % t.length;
-                const t1 = t[i];
-                const t2 = t[j];
+        for (let i = 0; i < triangles.length; i += 3) {
+            for (let j = 0; j < 3; j++) {
+                const t1 = triangles[i + j];
+                const t2 = triangles[i + (j + 1)%3];
                 const p1 = points[t1];
                 const p2 = points[t2];
                 const key = t1 < t2 ? `${t1},${t2}` : `${t2},${t1}`;
@@ -126,13 +128,11 @@ async function main() {
         }
         console.log("Number of lines:", lineMap.size);
 
-        // svg.drawRect(Vector.ZERO, pageSize);
-        // svg.drawRect(drawArea.p, drawArea.p.plus(drawArea.size));
         for (const line of lineMap.values()) {
-            svg.drawLine(line.p1, line.p2);
+            // svg.drawLine(line);
         }
         for (const point of points) {
-            // svg.drawCircle(point, 1);
+            svg.drawCircle(point, 1);
         }
     }
 

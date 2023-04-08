@@ -24,19 +24,10 @@ export class Svg {
     }
 
     /**
-     * Draw a line from p1 to p2.
+     * Draw a line.
      */
-    public drawLine(p1: Vector | Line, p2?: Vector) {
-        if (p1 instanceof Line) {
-            if (p2 !== undefined) {
-                throw new Error("When line, must specify only line");
-            }
-
-            p2 = p1.p2;
-            p1 = p1.p1;
-        }
-
-        this.parts.push(`<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="black" stroke-width="1"/>`);
+    public drawLine(line: Line, color = "black") {
+        this.parts.push(`<line x1="${line.p1.x}" y1="${line.p1.y}" x2="${line.p2.x}" y2="${line.p2.y}" stroke="${color}" stroke-width="1"/>`);
     }
 
     /**
