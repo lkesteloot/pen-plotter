@@ -114,119 +114,14 @@ async function main() {
         const triangles = delaunay.triangles;
         console.log("Number of triangles:", triangles.length / 3);
 
-        // Generate lines, removing duplicates. Key is "A,B" where A or B is the point index and A < B.
-        const lineMap = new Map<string,Line>();
-        for (let i = 0; i < triangles.length; i += 3) {
-            for (let j = 0; j < 3; j++) {
-                const t1 = triangles[i + j];
-                const t2 = triangles[i + (j + 1)%3];
-                const p1 = points[t1];
-                const p2 = points[t2];
-                const key = t1 < t2 ? `${t1},${t2}` : `${t2},${t1}`;
-                lineMap.set(key, new Line(p1, p2));
-            }
-        }
-        console.log("Number of lines:", lineMap.size);
+        const trianglesPath = delaunay.render();
+        svg.drawPath(trianglesPath);
 
-        for (const line of lineMap.values()) {
-            // svg.drawLine(line);
-        }
         for (const point of points) {
-            svg.drawCircle(point, 1);
+            // svg.drawCircle(point, 1);
         }
     }
 
-    if (false) {
-        const p1 = new Vector(1*DPI, 1*DPI);
-        const p2 = new Vector(1*DPI, 3*DPI);
-        const p3 = new Vector(3*DPI, 3*DPI);
-        const p4 = new Vector(3.5*DPI, 1.5*DPI);
-
-        const polygon = Polygon.fromPoints([p1, p2, p3, p4]);
-        for (const line of polygon.lines) {
-            svg.drawLine(line);
-        }
-
-        for (let i = 0; i < polygon.lines.length; i++) {
-            for (let j = i + 1; j < polygon.lines.length; j++) {
-                for (let k = j + 1; k < polygon.lines.length; k++) {
-                    const circle = Circle.circleTangentWith(
-                        polygon.lines[i],
-                        polygon.lines[j],
-                        polygon.lines[k]);
-                    if (circle !== undefined) {
-                        // svg.drawCircle(circle);
-                    }
-                }
-            }
-        }
-
-        const circle = polygon.largestInscribedCircle();
-        if (circle !== undefined) {
-            svg.drawCircle(circle);
-        }
-    }
-
-    if (false) {
-        let points: Vector[] = [];
-        for (let i = 0; i < 100; i++) {
-            const p = drawArea.randomPoint();
-            points.push(p);
-            // svg.drawCircle(p, 1);
-        }
-
-        const MAX = 5;
-        for (let qq = 0; qq < MAX; qq++) {
-            // const triangles = triangulate(points.map(p => p.toArray()));
-            const delaunay = Delaunay.from(points.map(p => p.toArray()));
-            const newPoints: Vector[] = [];
-            /*
-            const triangles = delaunay.triangles;
-            for (let i = 0; i < triangles.length; i += 3) {
-                const tp = [
-                    points[triangles[i]],
-                    points[triangles[i + 1]],
-                    points[triangles[i + 2]],
-                ];
-                const polygon = Polygon.fromPoints(tp);
-                for (const line of polygon.lines) {
-                    // svg.drawLine(line);
-                }
-                const circle = polygon.largestInscribedCircle();
-                if (circle !== undefined) {
-                    if (qq === MAX - 1) {
-                        svg.drawCircle(circle);
-                    }
-                    newPoints.push(circle.c);
-                }
-            }*/
-
-            const hull = delaunay.hull;
-            for (let i = 0; i < hull.length; i++) {
-                const p1 = points[hull[i]];
-                const p2 = points[hull[(i + 1) % hull.length]];
-                // svg.drawLine(p1, p2);
-            }
-
-            const voronoi = delaunay.voronoi(drawArea.asArray());
-            for (const cellPolygon of voronoi.cellPolygons()) {
-                const polygon = Polygon.fromClosedPoints(cellPolygon.map(Vector.fromArray));
-                for (const line of polygon.lines) {
-                    // svg.drawLine(line);
-                }
-                const circle = polygon.largestInscribedCircle();
-                if (circle !== undefined) {
-                    if (qq === MAX - 1) {
-                        svg.drawCircle(circle.c, 1);
-                    }
-                    newPoints.push(circle.c);
-                }
-            }
-
-            points = newPoints;
-        }
-    }
-    
     await svg.save("out.svg");
 }
 

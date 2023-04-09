@@ -53,6 +53,13 @@ export class Svg {
     }
 
     /**
+     * Draw an outlined hollow SVG path.
+     */
+    public drawPath(path: string) {
+        this.parts.push(`<path d="${path}" stroke="black" stroke-width="1" fill="none"/>`);
+    }
+
+    /**
      * Draw a Catmull-Rom spline. Does not draw the first and last point, so if you want those, duplicate
      * them.
      */
