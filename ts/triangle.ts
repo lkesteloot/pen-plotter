@@ -10,18 +10,20 @@ import { Line } from "./Line.ts";
 import { Circle } from "./Circle.ts";
 import { Polygon } from "./Polygon.ts";
 
-function relaxPoints(points: Vector[], drawArea: Rect, max: number): Vector[] {
-    for (let qq = 0; qq < max; qq++) {
+/**
+ * Relax (spread apart) a list of points using Lloyd's Algorithm.
+ * 
+ * https://en.wikipedia.org/wiki/Lloyd%27s_algorithm
+ */
+function relaxPoints(points: Vector[], drawArea: Rect, iterations: number): Vector[] {
+    for (let iteration = 0; iteration < iterations; iteration++) {
         const delaunay = Delaunay.from(points.map(p => p.toArray()));
         const newPoints: Vector[] = [];
 
         const voronoi = delaunay.voronoi(drawArea.asArray());
         for (const cellPolygon of voronoi.cellPolygons()) {
             const polygon = Polygon.fromClosedPoints(cellPolygon.map(Vector.fromArray));
-            const circle = polygon.largestInscribedCircle();
-            if (circle !== undefined) {
-                newPoints.push(circle.c);
-            }
+            newPoints.push(polygon.getCentroid());
         }
 
         points = newPoints;

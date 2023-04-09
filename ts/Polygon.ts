@@ -225,4 +225,24 @@ export class Polygon {
 
         return bestCircle;
     }
+
+    /**
+     * Return the center of mass of the polygon. Assumes the polygon is not self-intersecting,
+     * but it's permitted to be concave.
+     * 
+     * https://en.wikipedia.org/wiki/Centroid#Of_a_polygon
+     */
+    public getCentroid(): Vector {
+        let totalArea = 0;
+        let c = Vector.ZERO;
+
+        for (const line of this.lines) {
+            const segmentArea = line.p1.det(line.p2);
+            totalArea += segmentArea;
+            c = c.plus(line.p1.plus(line.p2).times(segmentArea));
+        }
+
+        totalArea /= 2;
+        return c.dividedBy(totalArea*6);
+    }
 }
