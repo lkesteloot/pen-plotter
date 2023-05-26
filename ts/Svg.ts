@@ -11,6 +11,7 @@ export const DPI = 96;
 export class Svg {
     private readonly size: Vector;
     private readonly parts: string[] = [];
+    private inverted = false;
 
     /**
      * Construct an SVG page with the given size.
@@ -23,10 +24,18 @@ export class Svg {
         this.parts.push(`<svg width="${this.size.x}" height="${this.size.y}" viewBox="0 0 ${this.size.x} ${this.size.y}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`);
     }
 
+    public invert() {
+        this.parts.push(`<rect x="0" y="0" width="${this.size.x}" height="${this.size.y}" fill="black"/>`);
+        this.inverted = true;
+    }
+
     /**
      * Draw a line.
      */
-    public drawLine(line: Line, color = "black") {
+    public drawLine(line: Line, color?: string) {
+        if (color === undefined) {
+            color = this.inverted ? "white" : "black";
+        }
         this.parts.push(`<line x1="${line.p1.x}" y1="${line.p1.y}" x2="${line.p2.x}" y2="${line.p2.y}" stroke="${color}" stroke-width="1"/>`);
     }
 
@@ -56,7 +65,8 @@ export class Svg {
      * Draw an outlined hollow SVG path.
      */
     public drawPath(path: string) {
-        this.parts.push(`<path d="${path}" stroke="black" stroke-width="1" fill="none"/>`);
+        const color = this.inverted ? "white" : "black";
+        this.parts.push(`<path d="${path}" stroke="${color}" stroke-width="1" fill="none"/>`);
     }
 
     /**

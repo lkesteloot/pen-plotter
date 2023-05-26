@@ -14,8 +14,13 @@ function clamp(x: number, low: number, high: number): number {
     return Math.min(Math.max(x, low), high);
 }
 
+function sCurve(x: number): number {
+    return Math.pow(x, 2)*3 - Math.pow(x, 3)*2;
+}
+
 async function main() {
-    const pathname = "bean.jpg";
+    const invert = true;
+    const pathname = invert ? "bean_over_black.jpg" : "bean.jpg";
     const jpegData = await Deno.readFile(pathname);
     const image = jpeg.decode(jpegData, {
         formatAsRGBA: false,
@@ -32,6 +37,9 @@ async function main() {
     const drawArea = page.insetBy(margin);
 
     const svg = new Svg(pageSize);
+    if (invert) {
+        svg.invert();
+    }
     // svg.drawRect(Vector.ZERO, pageSize);
     // svg.drawRect(drawArea.p, drawArea.p.plus(drawArea.size));
 
@@ -59,7 +67,10 @@ async function main() {
             const r = image.data[rgbIndex++];
             const g = image.data[rgbIndex++];
             const b = image.data[rgbIndex++];
-            const gray = (r*0.30 + g*.59 + b*.11)/255;
+            let gray = (r*0.30 + g*.59 + b*.11)/255;
+            if (invert) {
+                gray = 1 - gray;
+            }
             minGray = Math.min(minGray, gray);
             maxGray = Math.max(maxGray, gray);
             grayImage[grayIndex++] = gray;
@@ -74,11 +85,11 @@ async function main() {
             // Rescale 0 to 1.
             let gray = (grayImage[grayIndex] - minGray) / (maxGray - minGray);
 
-            gray += 0.35;
+            // gray += 0.35;
 
             gray = Math.min(Math.max(gray, 0), 1);
-            gray = Math.pow(gray, 2)*3 - Math.pow(gray, 3)*2;
-            gray = Math.pow(gray, 2)*3 - Math.pow(gray, 3)*2;
+            gray = sCurve(gray);
+            // gray = sCurve(gray);
 
             grayImage[grayIndex] = Math.min(gray, 0.99);
             grayIndex += 1;
@@ -105,7 +116,7 @@ async function main() {
 
     let points: Vector[] = [];
     // Rejection sampling.
-    while (points.length < 60_000) {
+    while (points.length < 20_000) {
         const x = Math.random()*image.width;
         const y = Math.random()*image.height;
         const gray = grayImage[Math.floor(y)*image.width + Math.floor(x)];
