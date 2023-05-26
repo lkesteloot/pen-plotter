@@ -10,6 +10,10 @@ import { Line } from "./Line.ts";
 import { Circle } from "./Circle.ts";
 import { Polygon } from "./Polygon.ts";
 
+function clamp(x: number, low: number, high: number): number {
+    return Math.min(Math.max(x, low), high);
+}
+
 async function main() {
     const pathname = "bean.jpg";
     const jpegData = await Deno.readFile(pathname);
@@ -85,7 +89,7 @@ async function main() {
         // Write modified JPEG back out.
         const buffer8 = new Uint8Array(grayImage.length*4);
         for (let i = 0; i < grayImage.length; i++) {
-            const value = Math.floor(Math.min(Math.max(grayImage[i]*255.99, 0), 255));
+            const value = Math.floor(clamp(grayImage[i]*255.99, 0, 255));
             buffer8[i*4 + 0] = value;
             buffer8[i*4 + 1] = value;
             buffer8[i*4 + 2] = value;
@@ -101,7 +105,7 @@ async function main() {
 
     let points: Vector[] = [];
     // Rejection sampling.
-    while (points.length < 60000) {
+    while (points.length < 60_000) {
         const x = Math.random()*image.width;
         const y = Math.random()*image.height;
         const gray = grayImage[Math.floor(y)*image.width + Math.floor(x)];
@@ -155,11 +159,24 @@ async function main() {
     const triangles = delaunay.triangles;
     console.log("Number of triangles:", triangles.length / 3);
 
-    const trianglesPath = delaunay.render();
-    // svg.drawPath(trianglesPath);
+    if (true) {
+        const trianglesPath = delaunay.render();
+        svg.drawPath(trianglesPath);
+    }
 
-    for (const point of points) {
-        svg.drawCircle(point, 1);
+    if (false) {
+        const minRadius = 1;
+        const maxRadius = 6;
+        for (const point of points) {
+            const imagePoint = point.minus(offset).dividedBy(scale);
+            const ix = clamp(Math.floor(imagePoint.x), 0, image.width - 1);
+            const iy = clamp(Math.floor(imagePoint.y), 0, image.height - 1);
+            const gray = grayImage[iy*image.width + ix];
+            const weight = (1 - gray);
+            const radius = minRadius + (maxRadius - minRadius)*weight;
+
+            svg.drawCircle(point, radius);
+        }
     }
 
     await svg.save("out.svg");
