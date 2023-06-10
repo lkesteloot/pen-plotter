@@ -11,6 +11,23 @@ import { Circle } from "./Circle.ts";
 import { Polygon } from "./Polygon.ts";
 import { Lines } from "./Lines.ts";
 
+// The Gelly Roll metallic set.
+// Colors eyeballed using https://htmlcolorcodes.com/color-picker/
+const PEN_COLOR = [
+    "#F4C858", // Gold #XPGB-M551
+    "#D7D7D7", // Silver #XPGB-M553
+    "#DDA62A", // Copper #XPGB-M554
+    "#F4977B", // Metallic Red #XPGB-M559
+    "#E7A7BF", // Metallic Pink #XPGB-M520
+    "#CBA5B5", // Metallic Burgundy #XPGB-M522
+    "#EFC2DE", // Metallic Purple #XPGB-M524
+    "#9CA560", // Metallic Emerald #XPGB-M526
+    "#A1B68D", // Metallic Green #XPGB-M529
+    "#6A9794", // Metallic Blue #XPGB-M536
+    "#4B5B60", // Metallic Blue Black #XPGB-M543
+    "#707070", // Metallic Black #XPGB-M549
+];
+
 function clamp(x: number, low: number, high: number): number {
     return Math.min(Math.max(x, low), high);
 }
@@ -20,8 +37,8 @@ function sCurve(x: number): number {
 }
 
 async function main() {
-    const invert = true;
-    const pathname = invert ? "bean_over_black.jpg" : "bean.jpg";
+    const inverted = true;
+    const pathname = inverted ? "bean_over_black.jpg" : "bean.jpg";
     const jpegData = await Deno.readFile(pathname);
     const image = jpeg.decode(jpegData, {
         formatAsRGBA: false,
@@ -62,7 +79,7 @@ async function main() {
             const g = image.data[rgbIndex++];
             const b = image.data[rgbIndex++];
             let gray = (r*0.30 + g*.59 + b*.11)/255;
-            if (invert) {
+            if (inverted) {
                 gray = 1 - gray;
             }
             minGray = Math.min(minGray, gray);
@@ -166,11 +183,8 @@ async function main() {
     console.log("Number of triangles:", triangles.length / 3);
 
     // One color.
-    if (true) {
-        const svg = new Svg(pageSize);
-        if (invert) {
-            svg.invert();
-        }
+    if (false) {
+        const svg = new Svg(pageSize, inverted);
         // svg.drawRect(Vector.ZERO, pageSize);
         // svg.drawRect(drawArea.p, drawArea.p.plus(drawArea.size));
 
@@ -202,16 +216,16 @@ async function main() {
 
         const lines = new Lines();
         delaunay.render(lines.getContext());
-        const linesPasses = lines.colorize(12);
+        const linesPasses = lines.colorize(PEN_COLOR.length);
+        const svgAll = new Svg(pageSize, inverted);
         for (let i = 0; i < linesPasses.length; i++) {
             const linesPass = linesPasses[i];
-            const svg = new Svg(pageSize);
-            if (invert) {
-                svg.invert();
-            }
+            const svg = new Svg(pageSize, inverted);
             svg.drawPath(linesPass.toSvgPath());
+            svgAll.drawPath(linesPass.toSvgPath(), PEN_COLOR[i]);
             await svg.save("out" + i + ".svg");
         }
+        await svgAll.save("out.svg");
     }
 }
 

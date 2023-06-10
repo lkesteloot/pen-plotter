@@ -4,6 +4,10 @@ import { Vector } from "./Vector.ts";
 
 const CURVE_TIGHTNESS = 0; // 0 = Catmull-Rom splines, 1 = straight lines
 export const DPI = 96;
+export const MM_TO_INCH = 1/25.4;
+export const GELLY_ROLL_PEN_SIZE_MM = 0.45; // Nominally 0.4, calibration got 0.35, but cat photo is closest to .45.
+
+const STROKE_WIDTH = GELLY_ROLL_PEN_SIZE_MM*MM_TO_INCH*DPI;
 
 /**
  * A class to generate SVG files. All coordinates are in points.
@@ -16,17 +20,13 @@ export class Svg {
     /**
      * Construct an SVG page with the given size.
      */
-    constructor(size: Vector) {
+    constructor(size: Vector, inverted = false) {
         this.size = size;
+        this.inverted = inverted;
 
         this.parts.push(`<?xml version="1.0" encoding="UTF-8" standalone="no"?>`);
         this.parts.push(`<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">`);
-        this.parts.push(`<svg width="${this.size.x}" height="${this.size.y}" viewBox="0 0 ${this.size.x} ${this.size.y}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`);
-    }
-
-    public invert() {
-        this.parts.push(`<rect x="0" y="0" width="${this.size.x}" height="${this.size.y}" fill="black"/>`);
-        this.inverted = true;
+        this.parts.push(`<svg width="${this.size.x}" height="${this.size.y}" viewBox="0 0 ${this.size.x} ${this.size.y}" style="background-color: ${inverted ? "black" : "white"}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`);
     }
 
     /**
@@ -36,15 +36,15 @@ export class Svg {
         if (color === undefined) {
             color = this.inverted ? "white" : "black";
         }
-        this.parts.push(`<line x1="${line.p1.x}" y1="${line.p1.y}" x2="${line.p2.x}" y2="${line.p2.y}" stroke="${color}" stroke-width="1"/>`);
+        this.parts.push(`<line x1="${line.p1.x}" y1="${line.p1.y}" x2="${line.p2.x}" y2="${line.p2.y}" stroke="${color}" stroke-width="${STROKE_WIDTH}"/>`);
     }
 
     /**
      * Draw a rectangle outline from p1 to p2.
      */
-    public drawRect(p1: Vector, p2: Vector) {
+    public drawRect(p1: Vector, p2: Vector, strokeWidth = STROKE_WIDTH) {
         const size = p2.minus(p1);
-        this.parts.push(`<rect x="${p1.x}" y="${p1.y}" width="${size.x}" height="${size.y}" stroke="blue" stroke-width="1" fill="none"/>`);
+        this.parts.push(`<rect x="${p1.x}" y="${p1.y}" width="${size.x}" height="${size.y}" stroke="blue" stroke-width="${strokeWidth}" fill="none"/>`);
     }
 
     /**
@@ -58,15 +58,15 @@ export class Svg {
             r = c.r;
             c = c.c;
         }
-        this.parts.push(`<circle cx="${c.x}" cy="${c.y}" r="${r}" stroke="black" stroke-width="1" fill="none"/>`);
+        this.parts.push(`<circle cx="${c.x}" cy="${c.y}" r="${r}" stroke="black" stroke-width="${STROKE_WIDTH}}" fill="none"/>`);
     }
 
     /**
      * Draw an outlined hollow SVG path.
      */
-    public drawPath(path: string) {
-        const color = this.inverted ? "white" : "black";
-        this.parts.push(`<path d="${path}" stroke="${color}" stroke-width="1" fill="none"/>`);
+    public drawPath(path: string, color?: string) {
+        color = color ?? (this.inverted ? "white" : "black");
+        this.parts.push(`<path d="${path}" stroke="${color}" stroke-width="${STROKE_WIDTH}" fill="none"/>`);
     }
 
     /**
@@ -81,7 +81,7 @@ export class Svg {
             const b1 = v[i].plus(v[i + 1].minus(v[i - 1]).times(s/6));
             const b2 = v[i + 1].plus(v[i].minus(v[i + 2]).times(s/6));
             const b3 = v[i + 1];
-            this.parts.push(`<path d="M ${b0.x} ${b0.y} C ${b1.x} ${b1.y}, ${b2.x} ${b2.y}, ${b3.x} ${b3.y}" stroke="black" stroke-width="1" fill="none"/>`);
+            this.parts.push(`<path d="M ${b0.x} ${b0.y} C ${b1.x} ${b1.y}, ${b2.x} ${b2.y}, ${b3.x} ${b3.y}" stroke="black" stroke-width="${STROKE_WIDTH}" fill="none"/>`);
         }
     }
 
