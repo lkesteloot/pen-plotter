@@ -9,6 +9,7 @@ import { Rect } from "./Rect.ts";
 import { Line } from "./Line.ts";
 import { Circle } from "./Circle.ts";
 import { Polygon } from "./Polygon.ts";
+import { Lines } from "./Lines.ts";
 
 function clamp(x: number, low: number, high: number): number {
     return Math.min(Math.max(x, low), high);
@@ -35,13 +36,6 @@ async function main() {
     const page = new Rect(Vector.ZERO, pageSize);
     const margin = 1*DPI;
     const drawArea = page.insetBy(margin);
-
-    const svg = new Svg(pageSize);
-    if (invert) {
-        svg.invert();
-    }
-    // svg.drawRect(Vector.ZERO, pageSize);
-    // svg.drawRect(drawArea.p, drawArea.p.plus(drawArea.size));
 
     // Center image in draw area.
     let scale: number;
@@ -86,10 +80,11 @@ async function main() {
             let gray = (grayImage[grayIndex] - minGray) / (maxGray - minGray);
 
             // gray += 0.35;
+            gray -= 0.03;
 
             gray = Math.min(Math.max(gray, 0), 1);
-            gray = sCurve(gray);
             // gray = sCurve(gray);
+            gray = sCurve(gray);
 
             grayImage[grayIndex] = Math.min(gray, 0.99);
             grayIndex += 1;
@@ -116,7 +111,7 @@ async function main() {
 
     let points: Vector[] = [];
     // Rejection sampling.
-    while (points.length < 20_000) {
+    while (points.length < 20_000 /* && points.length < 1000 */) {
         const x = Math.random()*image.width;
         const y = Math.random()*image.height;
         const gray = grayImage[Math.floor(y)*image.width + Math.floor(x)];
@@ -170,27 +165,54 @@ async function main() {
     const triangles = delaunay.triangles;
     console.log("Number of triangles:", triangles.length / 3);
 
+    // One color.
     if (true) {
-        const trianglesPath = delaunay.render();
-        svg.drawPath(trianglesPath);
-    }
+        const svg = new Svg(pageSize);
+        if (invert) {
+            svg.invert();
+        }
+        // svg.drawRect(Vector.ZERO, pageSize);
+        // svg.drawRect(drawArea.p, drawArea.p.plus(drawArea.size));
 
-    if (false) {
-        const minRadius = 1;
-        const maxRadius = 6;
-        for (const point of points) {
-            const imagePoint = point.minus(offset).dividedBy(scale);
-            const ix = clamp(Math.floor(imagePoint.x), 0, image.width - 1);
-            const iy = clamp(Math.floor(imagePoint.y), 0, image.height - 1);
-            const gray = grayImage[iy*image.width + ix];
-            const weight = (1 - gray);
-            const radius = minRadius + (maxRadius - minRadius)*weight;
+        // Lines.
+        if (true) {
+            const trianglesPath = delaunay.render();
+            svg.drawPath(trianglesPath);
+        }
 
-            svg.drawCircle(point, radius);
+        // Dots.
+        if (false) {
+            const minRadius = 1;
+            const maxRadius = 6;
+            for (const point of points) {
+                const imagePoint = point.minus(offset).dividedBy(scale);
+                const ix = clamp(Math.floor(imagePoint.x), 0, image.width - 1);
+                const iy = clamp(Math.floor(imagePoint.y), 0, image.height - 1);
+                const gray = grayImage[iy*image.width + ix];
+                const weight = (1 - gray);
+                const radius = minRadius + (maxRadius - minRadius)*weight;
+
+                svg.drawCircle(point, radius);
+            }
+        }
+
+        await svg.save("out.svg");
+    } else {
+        // Multi-color.
+
+        const lines = new Lines();
+        delaunay.render(lines.getContext());
+        const linesPasses = lines.colorize(12);
+        for (let i = 0; i < linesPasses.length; i++) {
+            const linesPass = linesPasses[i];
+            const svg = new Svg(pageSize);
+            if (invert) {
+                svg.invert();
+            }
+            svg.drawPath(linesPass.toSvgPath());
+            await svg.save("out" + i + ".svg");
         }
     }
-
-    await svg.save("out.svg");
 }
 
 await main();

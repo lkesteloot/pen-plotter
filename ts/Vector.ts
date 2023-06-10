@@ -137,4 +137,26 @@ export class Vector {
     public det(p: Vector): number {
         return this.x*p.y - p.x*this.y;
     }
+
+    /**
+     * A point with the minimum of x and y of each vector.
+     */
+    public minWith(p: Vector): Vector {
+        if (p.x < this.x || p.y < this.y) {
+            return new Vector(Math.min(this.x, p.x), Math.min(this.y, p.y));
+        } else {
+            return this;
+        }
+    }
+
+    /**
+     * A point with the maximum of x and y of each vector.
+     */
+    public maxWith(p: Vector): Vector {
+        if (p.x > this.x || p.y > this.y) {
+            return new Vector(Math.max(this.x, p.x), Math.max(this.y, p.y));
+        } else {
+            return this;
+        }
+    }
 }
