@@ -38,7 +38,7 @@ function sCurve(x: number): number {
 
 async function main() {
     const inverted = true;
-    const pathname = inverted ? "bean_over_black.jpg" : "bean.jpg";
+    const pathname = inverted ? "bean_over_black_fixed.jpg" : "bean.jpg";
     const jpegData = await Deno.readFile(pathname);
     const image = jpeg.decode(jpegData, {
         formatAsRGBA: false,
@@ -128,7 +128,7 @@ async function main() {
 
     let points: Vector[] = [];
     // Rejection sampling.
-    while (points.length < 20_000 /* && points.length < 1000 */) {
+    while (points.length < 5_000 /* && points.length < 1000 */) {
         const x = Math.random()*image.width;
         const y = Math.random()*image.height;
         const gray = grayImage[Math.floor(y)*image.width + Math.floor(x)];
